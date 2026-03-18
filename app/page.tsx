@@ -1,65 +1,109 @@
-import Image from "next/image";
+'use client';
 
-export default function Home() {
+import React from 'react';
+import { Row, Col, Card, Statistic, Typography, Divider, List, Tag } from 'antd';
+import { 
+  ArrowUpOutlined, 
+  ArrowDownOutlined, 
+  UserOutlined, 
+  DollarOutlined, 
+  RocketOutlined, 
+  CheckCircleOutlined 
+} from '@ant-design/icons';
+
+const { Title, Text } = Typography;
+
+export default function Dashboard() {
+  const recentActivities = [
+    { title: 'New lead created: John Doe', time: '2 hours ago', type: 'Lead' },
+    { title: 'Deal "Project X" moved to Negotiation', time: '4 hours ago', type: 'Deal' },
+    { title: 'Quote sent to Acme Corp', time: 'Yesterday', type: 'Quote' },
+    { title: 'Task completed: Follow up with Sarah', time: 'Yesterday', type: 'Task' },
+  ];
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex min-h-screen w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+    <div>
+      <Title level={2}>Dashboard Overview</Title>
+      <Text type="secondary">Welcome back! Here is what is happening with your organization today.</Text>
+      
+      <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
+        <Col xs={24} sm={12} lg={6}>
+          <Card bordered={false}>
+            <Statistic
+              title="Total Revenue"
+              value={45200}
+              precision={2}
+              prefix={<DollarOutlined />}
+              suffix="USD"
+              valueStyle={{ color: '#3f8600' }}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
+            <div style={{ marginTop: 8 }}>
+              <Tag color="green"><ArrowUpOutlined /> 12%</Tag>
+              <Text type="secondary">since last month</Text>
+            </div>
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <Card bordered={false}>
+            <Statistic
+              title="Active Deals"
+              value={18}
+              prefix={<RocketOutlined />}
+              valueStyle={{ color: '#1677ff' }}
+            />
+            <div style={{ marginTop: 8 }}>
+              <Tag color="blue"><ArrowUpOutlined /> 5%</Tag>
+              <Text type="secondary">new deals added</Text>
+            </div>
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <Card bordered={false}>
+            <Statistic
+              title="New Leads"
+              value={124}
+              prefix={<UserOutlined />}
+            />
+            <div style={{ marginTop: 8 }}>
+              <Tag color="red"><ArrowDownOutlined /> 2%</Tag>
+              <Text type="secondary">conversion rate</Text>
+            </div>
+          </Card>
+        </Col>
+        <Col xs={24} sm={12} lg={6}>
+          <Card bordered={false}>
+            <Statistic
+              title="Tasks Completed"
+              value={92}
+              suffix="/ 100"
+              prefix={<CheckCircleOutlined />}
+            />
+            <div style={{ marginTop: 8 }}>
+              <Text type="secondary">8 tasks remaining</Text>
+            </div>
+          </Card>
+        </Col>
+      </Row>
+
+      <Row gutter={[16, 16]} style={{ marginTop: 24 }}>
+        <Col span={24}>
+          <Card title="Recent Activity" bordered={false}>
+            <List
+              itemLayout="horizontal"
+              dataSource={recentActivities}
+              renderItem={(item) => (
+                <List.Item>
+                  <List.Item.Meta
+                    title={<a href="#">{item.title}</a>}
+                    description={item.time}
+                  />
+                  <Tag color={item.type === 'Deal' ? 'gold' : 'blue'}>{item.type}</Tag>
+                </List.Item>
+              )}
+            />
+          </Card>
+        </Col>
+      </Row>
     </div>
   );
 }
