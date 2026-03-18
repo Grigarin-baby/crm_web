@@ -1,16 +1,16 @@
 @import "tailwindcss";
 
 :root {
-  --background: #f5f7fa; /* Slightly off-white for CRM background */
+  --background: #f5f7fa;
   --foreground: #171717;
   --primary-color: #1677ff;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+[data-theme='dark'] {
+  --background: #000000;
+  --foreground: #ededed;
+  --container-bg: #1f1f1f;
+  --primary-color: #001F3D;
 }
 
 body {
@@ -20,7 +20,6 @@ body {
   padding: 0;
 }
 
-/* CRM Layout Spacing */
 .crm-content-container {
   padding: 24px;
 }
@@ -28,11 +27,11 @@ body {
 .crm-card {
   margin-bottom: 16px;
   border-radius: 8px;
+  background: var(--container-bg);
 }
 
-/* Universal Typography Helpers */
 .text-muted {
-  color: rgba(0, 0, 0, 0.45);
+  color: rgba(255, 255, 255, 0.45);
 }
 
 .text-success {
@@ -47,7 +46,6 @@ body {
   color: #ff4d4f;
 }
 
-/* Global button spacing in forms */
 .form-actions {
   display: flex;
   gap: 12px;

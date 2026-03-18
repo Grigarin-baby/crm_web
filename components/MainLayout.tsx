@@ -26,6 +26,7 @@ import {
 import { Layout, Menu, Button, theme, Typography, Space, Tooltip } from 'antd';
 import { useRouter, usePathname } from 'next/navigation';
 import { useTheme } from '@/context/ThemeContext';
+import { themeConfig } from '@/lib/theme';
 
 const { Header, Sider, Content } = Layout;
 const { Title } = Typography;
@@ -35,6 +36,7 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const router = useRouter();
   const pathname = usePathname();
   const { theme: currentTheme, toggleTheme } = useTheme();
+  const colors = currentTheme === 'dark' ? themeConfig.dark : themeConfig.light;
   
   const {
     token: { colorBgContainer, borderRadiusLG },
@@ -108,9 +110,10 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
         width={260} 
         theme={currentTheme}
         style={{ 
-          borderRight: currentTheme === 'light' ? '1px solid #f0f0f0' : 'none',
+          borderRight: `1px solid ${colors.borderColor}`,
           height: '100vh',
-          position: 'relative'
+          position: 'relative',
+          background: colors.layoutBg // Pure Black
         }}
       >
         {/* Fixed Sidebar Header */}
@@ -119,9 +122,10 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           display: 'flex', 
           alignItems: 'center', 
           justifyContent: 'center', 
-          borderBottom: currentTheme === 'light' ? '1px solid #f0f0f0' : '1px solid #303030',
+          borderBottom: `1px solid ${colors.borderColor}`,
+          background: colors.layoutBg
         }}>
-          <Title level={4} style={{ margin: 0, color: '#1677ff' }}>
+          <Title level={4} style={{ margin: 0, color: colors.primary }}>
             {collapsed ? 'CRM' : 'Multi-Tenant CRM'}
           </Title>
         </div>
@@ -131,7 +135,8 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           height: 'calc(100vh - 64px)', 
           overflowY: 'auto', 
           overflowX: 'hidden',
-          paddingBottom: 24
+          paddingBottom: 24,
+          background: colors.layoutBg
         }}>
           <Menu
             mode="inline"
@@ -140,7 +145,10 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             selectedKeys={[pathname]}
             items={menuItems}
             onClick={({ key }) => router.push(key)}
-            style={{ borderRight: 0 }}
+            style={{ 
+              borderRight: 0,
+              background: 'transparent', // Inherit Pure Black from container
+            }}
           />
         </div>
       </Sider>
@@ -153,7 +161,7 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           display: 'flex', 
           alignItems: 'center', 
           justifyContent: 'space-between', 
-          borderBottom: currentTheme === 'light' ? '1px solid #f0f0f0' : '1px solid #303030',
+          borderBottom: `1px solid ${colors.borderColor}`,
           flexShrink: 0
         }}>
           <Button
@@ -185,7 +193,7 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           style={{
             margin: '24px 16px',
             padding: 24,
-            background: colorBgContainer,
+            background: colorBgContainer, // Neutral Grey
             borderRadius: borderRadiusLG,
             flex: 1,
             overflowY: 'auto'
