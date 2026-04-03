@@ -3,6 +3,7 @@ export const themeConfig = {
     primary: '#1677ff',
     layoutBg: '#f5f7fa',
     containerBg: '#ffffff',
+    elevatedBg: '#ffffff',
     borderColor: '#f0f0f0',
   },
   dark: {

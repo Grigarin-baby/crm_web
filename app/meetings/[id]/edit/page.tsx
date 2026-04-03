@@ -1,61 +1,90 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Form, Input, Select, Row, Col, DatePicker, message } from 'antd';
-import dayjs from 'dayjs';
+import { Form, Input, Select, Row, Col, message, Spin, DatePicker } from 'antd';
 import ModuleHeader from '@/components/ModuleHeader';
 import DataForm from '@/components/DataForm';
-import { mockMeetings, mockContacts } from '@/lib/mockData';
+import { api } from '@/lib/api';
+import dayjs from 'dayjs';
 
 const { Option } = Select;
-const { TextArea } = Input;
 
 export default function EditMeetingPage() {
   const params = useParams();
   const router = useRouter();
   const [form] = Form.useForm();
-  
-  const meeting = mockMeetings.find(m => m.id === params.id) || mockMeetings[0];
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [contacts, setContacts] = useState<any[]>([]);
 
   useEffect(() => {
-    form.setFieldsValue({
-      ...meeting,
-      date: meeting.date ? dayjs(meeting.date) : null,
-    });
-  }, [meeting, form]);
+    const fetchData = async () => {
+      try {
+        const [meetingRes, contactsRes] = await Promise.all([
+          api.get(`/activity/meetings/${params.id}`),
+          api.get('/modules/contacts?take=100'),
+        ]);
+        setContacts(contactsRes.items);
+        form.setFieldsValue({
+          ...meetingRes,
+          date: meetingRes.date ? dayjs(meetingRes.date) : null,
+        });
+      } catch (error: any) {
+        message.error(`Failed to fetch data: ${error.message}`);
+        router.push('/meetings');
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (params.id) fetchData();
+  }, [params.id, form, router]);
 
-  const onFinish = (values: any) => {
-    console.log('Updated values:', values);
-    message.success('Meeting updated successfully (mock)');
-    router.push(`/meetings/${meeting.id}`);
+  const onFinish = async (values: any) => {
+    setSubmitting(true);
+    try {
+      const data = {
+        ...values,
+        date: values.date ? values.date.toISOString() : null,
+      };
+      await api.patch(`/activity/meetings/${params.id}`, data);
+      message.success('Meeting updated successfully');
+      router.push(`/meetings/${params.id}`);
+    } catch (error: any) {
+      message.error(`Failed to update meeting: ${error.message}`);
+    } finally {
+      setSubmitting(false);
+    }
   };
+
+  if (loading) return <div style={{ textAlign: 'center', padding: '50px' }}><Spin size="large" /></div>;
 
   return (
     <div>
       <ModuleHeader
-        title={`Edit Meeting: ${meeting.title}`}
+        title="Edit Meeting"
         breadcrumbItems={[
           { title: 'Dashboard', href: '/' },
           { title: 'Meetings', href: '/meetings' },
-          { title: 'Details', href: `/meetings/${meeting.id}` },
+          { title: 'Details', href: `/meetings/${params.id}` },
           { title: 'Edit' },
         ]}
         backAction
       />
-      
-      <DataForm 
-        form={form} 
-        onFinish={onFinish} 
+
+      <DataForm
+        form={form}
+        onFinish={onFinish}
         onCancel={() => router.back()}
         submitLabel="Save Changes"
+        loading={submitting}
       >
         <Row gutter={16}>
           <Col span={24}>
             <Form.Item
               name="title"
               label="Subject"
-              rules={[{ required: true, message: 'Please enter subject' }]}
+              rules={[{ required: true, message: 'Please enter meeting subject' }]}
             >
               <Input />
             </Form.Item>
@@ -77,7 +106,7 @@ export default function EditMeetingPage() {
               name="location"
               label="Location"
             >
-              <Input />
+              <Input placeholder="e.g. Zoom, Office" />
             </Form.Item>
           </Col>
         </Row>
@@ -85,36 +114,24 @@ export default function EditMeetingPage() {
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item
-              name="participants"
-              label="Participants"
-            >
-              <Input />
-            </Form.Item>
-          </Col>
-          <Col span={12}>
-            <Form.Item
-              name="contactName"
+              name="contactId"
               label="Related Contact"
-              rules={[{ required: true, message: 'Please select a contact' }]}
             >
-              <Select>
-                {mockContacts.map(contact => (
-                  <Option key={contact.id} value={`${contact.firstName} ${contact.lastName}`}>
+              <Select placeholder="Select contact" allowClear>
+                {contacts.map(contact => (
+                  <Option key={contact.id} value={contact.id}>
                     {contact.firstName} {contact.lastName}
                   </Option>
                 ))}
               </Select>
             </Form.Item>
           </Col>
-        </Row>
-
-        <Row gutter={16}>
-          <Col span={24}>
+          <Col span={12}>
             <Form.Item
-              name="notes"
-              label="Notes"
+              name="participants"
+              label="Participants"
             >
-              <TextArea rows={4} />
+              <Input placeholder="e.g. John Doe, Sarah Smith" />
             </Form.Item>
           </Col>
         </Row>

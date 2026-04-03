@@ -1,14 +1,58 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Tag, message } from 'antd';
+import { Tag, message, TablePaginationConfig } from 'antd';
 import ModuleHeader from '@/components/ModuleHeader';
 import DataTable from '@/components/DataTable';
-import { mockLeads } from '@/lib/mockData';
+import { api } from '@/lib/api';
 
 export default function LeadsPage() {
   const router = useRouter();
+  const [data, setData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [pagination, setPagination] = useState<TablePaginationConfig>({
+    current: 1,
+    pageSize: 10,
+    total: 0,
+  });
+
+  const fetchLeads = useCallback(async (current: number, pageSize: number) => {
+    setLoading(true);
+    try {
+      const skip = (current - 1) * pageSize;
+      const response = await api.get(`/modules/leads?skip=${skip}&take=${pageSize}`);
+      setData(response.items);
+      setPagination(prev => ({
+        ...prev,
+        current,
+        pageSize,
+        total: response.total,
+      }));
+    } catch (error: any) {
+      message.error(`Failed to fetch leads: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchLeads(pagination.current || 1, pagination.pageSize || 10);
+  }, [fetchLeads]);
+
+  const handleTableChange = (newPagination: TablePaginationConfig) => {
+    fetchLeads(newPagination.current || 1, newPagination.pageSize || 10);
+  };
+
+  const handleDelete = async (record: any) => {
+    try {
+      await api.delete(`/modules/leads/${record.id}`);
+      message.success('Lead deleted successfully');
+      fetchLeads(pagination.current || 1, pagination.pageSize || 10);
+    } catch (error: any) {
+      message.error(`Failed to delete lead: ${error.message}`);
+    }
+  };
 
   const columns = [
     {
@@ -46,6 +90,7 @@ export default function LeadsPage() {
       title: 'Created At',
       dataIndex: 'createdAt',
       key: 'createdAt',
+      render: (date: string) => new Date(date).toLocaleDateString(),
     },
   ];
 
@@ -64,10 +109,13 @@ export default function LeadsPage() {
       />
       <DataTable
         columns={columns}
-        dataSource={mockLeads}
+        dataSource={data}
+        loading={loading}
+        pagination={pagination}
+        onChange={handleTableChange}
         onView={(record) => router.push(`/leads/${record.id}`)}
         onEdit={(record) => router.push(`/leads/${record.id}/edit`)}
-        onDelete={(record) => message.success(`Lead ${record.id} deleted (mock)`)}
+        onDelete={handleDelete}
       />
     </div>
   );

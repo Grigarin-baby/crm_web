@@ -1,23 +1,52 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Form, Input, Select, Row, Col, message } from 'antd';
+import { Form, Input, Select, Row, Col, message, Spin } from 'antd';
 import ModuleHeader from '@/components/ModuleHeader';
 import DataForm from '@/components/DataForm';
-import { mockCustomers } from '@/lib/mockData';
+import { api } from '@/lib/api';
 
 const { Option } = Select;
 
 export default function CreateSalesOrderPage() {
   const router = useRouter();
   const [form] = Form.useForm();
+  const [loading, setLoading] = useState(true);
+  const [customers, setCustomers] = useState<any[]>([]);
+  const [quotes, setQuotes] = useState<any[]>([]);
 
-  const onFinish = (values: any) => {
-    console.log('Received values:', values);
-    message.success('Sales Order created successfully (mock)');
-    router.push('/sales-orders');
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [customersData, quotesData] = await Promise.all([
+          api.get('/modules/customers'),
+          api.get('/modules/quotes'),
+        ]);
+        setCustomers(customersData.items || []);
+        setQuotes(quotesData.items || []);
+      } catch (error: any) {
+        message.error(`Failed to fetch data: ${error.message}`);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const onFinish = async (values: any) => {
+    try {
+      await api.post('/modules/sales-orders', values);
+      message.success('Sales Order created successfully');
+      router.push('/sales-orders');
+    } catch (error: any) {
+      message.error(`Failed to create sales order: ${error.message}`);
+    }
   };
+
+  if (loading) {
+    return <div style={{ textAlign: 'center', padding: '50px' }}><Spin size="large" /></div>;
+  }
 
   return (
     <div>
@@ -49,13 +78,13 @@ export default function CreateSalesOrderPage() {
           </Col>
           <Col span={12}>
             <Form.Item
-              name="customerName"
+              name="customerId"
               label="Customer"
               rules={[{ required: true, message: 'Please select a customer' }]}
             >
               <Select placeholder="Select customer">
-                {mockCustomers.map(customer => (
-                  <Option key={customer.id} value={customer.name}>{customer.name}</Option>
+                {customers.map(customer => (
+                  <Option key={customer.id} value={customer.id}>{customer.name}</Option>
                 ))}
               </Select>
             </Form.Item>
@@ -63,6 +92,19 @@ export default function CreateSalesOrderPage() {
         </Row>
 
         <Row gutter={16}>
+          <Col span={12}>
+            <Form.Item
+              name="quoteId"
+              label="Quote"
+              rules={[{ required: true, message: 'Please select a quote' }]}
+            >
+              <Select placeholder="Select quote">
+                {quotes.map(quote => (
+                  <Option key={quote.id} value={quote.id}>{quote.quoteNumber}</Option>
+                ))}
+              </Select>
+            </Form.Item>
+          </Col>
           <Col span={12}>
             <Form.Item
               name="orderStatus"
@@ -78,14 +120,17 @@ export default function CreateSalesOrderPage() {
               </Select>
             </Form.Item>
           </Col>
+        </Row>
+
+        <Row gutter={16}>
           <Col span={12}>
             <Form.Item
               name="paymentStatus"
               label="Payment Status"
-              initialValue="PENDING"
+              initialValue="UNPAID"
             >
               <Select>
-                <Option value="PENDING">PENDING</Option>
+                <Option value="UNPAID">UNPAID</Option>
                 <Option value="PAID">PAID</Option>
                 <Option value="PARTIAL">PARTIAL</Option>
               </Select>

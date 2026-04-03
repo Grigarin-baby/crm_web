@@ -143,7 +143,7 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
             theme={currentTheme}
             defaultSelectedKeys={[pathname]}
             selectedKeys={[pathname]}
-            items={menuItems}
+            items={menuItems as any}
             onClick={({ key }) => router.push(key)}
             style={{ 
               borderRight: 0,

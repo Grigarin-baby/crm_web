@@ -1,16 +1,35 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Card, Descriptions, Tag, Button, Space } from 'antd';
-import { EditOutlined, ArrowLeftOutlined } from '@ant-design/icons';
+import { Card, Descriptions, Tag, Spin, message } from 'antd';
+import { EditOutlined } from '@ant-design/icons';
 import ModuleHeader from '@/components/ModuleHeader';
-import { mockLeads } from '@/lib/mockData';
+import { api } from '@/lib/api';
 
 export default function ViewLeadPage() {
   const params = useParams();
   const router = useRouter();
-  const lead = mockLeads.find(l => l.id === params.id) || mockLeads[0];
+  const [lead, setLead] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchLead = async () => {
+      try {
+        const response = await api.get(`/modules/leads/${params.id}`);
+        setLead(response);
+      } catch (error: any) {
+        message.error(`Failed to fetch lead: ${error.message}`);
+        router.push('/leads');
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (params.id) fetchLead();
+  }, [params.id, router]);
+
+  if (loading) return <div style={{ textAlign: 'center', padding: '50px' }}><Spin size="large" /></div>;
+  if (!lead) return null;
 
   return (
     <div>
@@ -40,7 +59,7 @@ export default function ViewLeadPage() {
             <Tag color={lead.status === 'NEW' ? 'blue' : 'green'}>{lead.status}</Tag>
           </Descriptions.Item>
           <Descriptions.Item label="Source">{lead.source}</Descriptions.Item>
-          <Descriptions.Item label="Created At">{lead.createdAt}</Descriptions.Item>
+          <Descriptions.Item label="Created At">{new Date(lead.createdAt).toLocaleDateString()}</Descriptions.Item>
         </Descriptions>
       </Card>
     </div>

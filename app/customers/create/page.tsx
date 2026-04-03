@@ -1,21 +1,30 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Form, Input, Select, Row, Col, message } from 'antd';
 import ModuleHeader from '@/components/ModuleHeader';
 import DataForm from '@/components/DataForm';
+import { api } from '@/lib/api';
 
 const { Option } = Select;
 
 export default function CreateCustomerPage() {
   const router = useRouter();
   const [form] = Form.useForm();
+  const [submitting, setSubmitting] = useState(false);
 
-  const onFinish = (values: any) => {
-    console.log('Received values:', values);
-    message.success('Customer created successfully (mock)');
-    router.push('/customers');
+  const onFinish = async (values: any) => {
+    setSubmitting(true);
+    try {
+      await api.post('/modules/customers', values);
+      message.success('Customer created successfully');
+      router.push('/customers');
+    } catch (error: any) {
+      message.error(`Failed to create customer: ${error.message}`);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -29,12 +38,13 @@ export default function CreateCustomerPage() {
         ]}
         backAction
       />
-      
-      <DataForm 
-        form={form} 
-        onFinish={onFinish} 
+
+      <DataForm
+        form={form}
+        onFinish={onFinish}
         onCancel={() => router.push('/customers')}
         submitLabel="Create Customer"
+        loading={submitting}
       >
         <Row gutter={16}>
           <Col span={24}>

@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Form, Input, Select, Row, Col, InputNumber, message } from 'antd';
+import { Form, Input, Select, Row, Col, message, Spin, InputNumber } from 'antd';
 import ModuleHeader from '@/components/ModuleHeader';
 import DataForm from '@/components/DataForm';
-import { mockCalls, mockContacts } from '@/lib/mockData';
+import { api } from '@/lib/api';
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -14,37 +14,63 @@ export default function EditCallPage() {
   const params = useParams();
   const router = useRouter();
   const [form] = Form.useForm();
-  
-  const call = mockCalls.find(c => c.id === params.id) || mockCalls[0];
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [contacts, setContacts] = useState<any[]>([]);
 
   useEffect(() => {
-    form.setFieldsValue(call);
-  }, [call, form]);
+    const fetchData = async () => {
+      try {
+        const [callRes, contactsRes] = await Promise.all([
+          api.get(`/activity/calls/${params.id}`),
+          api.get('/modules/contacts?take=100'),
+        ]);
+        setContacts(contactsRes.items);
+        form.setFieldsValue(callRes);
+      } catch (error: any) {
+        message.error(`Failed to fetch data: ${error.message}`);
+        router.push('/calls');
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (params.id) fetchData();
+  }, [params.id, form, router]);
 
-  const onFinish = (values: any) => {
-    console.log('Updated values:', values);
-    message.success('Call updated successfully (mock)');
-    router.push(`/calls/${call.id}`);
+  const onFinish = async (values: any) => {
+    setSubmitting(true);
+    try {
+      await api.patch(`/activity/calls/${params.id}`, values);
+      message.success('Call updated successfully');
+      router.push(`/calls/${params.id}`);
+    } catch (error: any) {
+      message.error(`Failed to update call: ${error.message}`);
+    } finally {
+      setSubmitting(false);
+    }
   };
+
+  if (loading) return <div style={{ textAlign: 'center', padding: '50px' }}><Spin size="large" /></div>;
 
   return (
     <div>
       <ModuleHeader
-        title={`Edit Call: ${call.id}`}
+        title="Edit Call Log"
         breadcrumbItems={[
           { title: 'Dashboard', href: '/' },
           { title: 'Calls', href: '/calls' },
-          { title: 'Details', href: `/calls/${call.id}` },
+          { title: 'Details', href: `/calls/${params.id}` },
           { title: 'Edit' },
         ]}
         backAction
       />
-      
-      <DataForm 
-        form={form} 
-        onFinish={onFinish} 
+
+      <DataForm
+        form={form}
+        onFinish={onFinish}
         onCancel={() => router.back()}
         submitLabel="Save Changes"
+        loading={submitting}
       >
         <Row gutter={16}>
           <Col span={12}>
@@ -61,13 +87,12 @@ export default function EditCallPage() {
           </Col>
           <Col span={12}>
             <Form.Item
-              name="contactName"
+              name="contactId"
               label="Related Contact"
-              rules={[{ required: true, message: 'Please select a contact' }]}
             >
-              <Select>
-                {mockContacts.map(contact => (
-                  <Option key={contact.id} value={`${contact.firstName} ${contact.lastName}`}>
+              <Select placeholder="Select contact" allowClear>
+                {contacts.map(contact => (
+                  <Option key={contact.id} value={contact.id}>
                     {contact.firstName} {contact.lastName}
                   </Option>
                 ))}

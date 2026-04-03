@@ -1,16 +1,35 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Card, Descriptions } from 'antd';
+import { Card, Descriptions, Spin, message } from 'antd';
 import { EditOutlined } from '@ant-design/icons';
 import ModuleHeader from '@/components/ModuleHeader';
-import { mockContacts } from '@/lib/mockData';
+import { api } from '@/lib/api';
 
 export default function ViewContactPage() {
   const params = useParams();
   const router = useRouter();
-  const contact = mockContacts.find(c => c.id === params.id) || mockContacts[0];
+  const [contact, setContact] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchContact = async () => {
+      try {
+        const response = await api.get(`/modules/contacts/${params.id}`);
+        setContact(response);
+      } catch (error: any) {
+        message.error(`Failed to fetch contact: ${error.message}`);
+        router.push('/contacts');
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (params.id) fetchContact();
+  }, [params.id, router]);
+
+  if (loading) return <div style={{ textAlign: 'center', padding: '50px' }}><Spin size="large" /></div>;
+  if (!contact) return null;
 
   return (
     <div>
@@ -36,7 +55,8 @@ export default function ViewContactPage() {
           <Descriptions.Item label="Email">{contact.email}</Descriptions.Item>
           <Descriptions.Item label="Phone">{contact.phone}</Descriptions.Item>
           <Descriptions.Item label="Role">{contact.role}</Descriptions.Item>
-          <Descriptions.Item label="Customer">{contact.customerName}</Descriptions.Item>
+          <Descriptions.Item label="Customer">{contact.customer?.name || '-'}</Descriptions.Item>
+          <Descriptions.Item label="Created At">{new Date(contact.createdAt).toLocaleDateString()}</Descriptions.Item>
         </Descriptions>
       </Card>
     </div>

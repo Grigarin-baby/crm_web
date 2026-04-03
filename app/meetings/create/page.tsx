@@ -1,11 +1,12 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Form, Input, Select, Row, Col, DatePicker, message } from 'antd';
 import ModuleHeader from '@/components/ModuleHeader';
 import DataForm from '@/components/DataForm';
-import { mockContacts } from '@/lib/mockData';
+import { api } from '@/lib/api';
+import dayjs from 'dayjs';
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -13,11 +14,43 @@ const { TextArea } = Input;
 export default function CreateMeetingPage() {
   const router = useRouter();
   const [form] = Form.useForm();
+  const [contacts, setContacts] = useState<any[]>([]);
+  const [loadingContacts, setLoadingContacts] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  const onFinish = (values: any) => {
-    console.log('Received values:', values);
-    message.success('Meeting scheduled successfully (mock)');
-    router.push('/meetings');
+  useEffect(() => {
+    const fetchContacts = async () => {
+      try {
+        setLoadingContacts(true);
+        const data = await api.get('/contacts');
+        setContacts(data);
+      } catch (err) {
+        console.error('Failed to fetch contacts:', err);
+        message.error('Failed to load contacts');
+      } finally {
+        setLoadingContacts(false);
+      }
+    };
+    fetchContacts();
+  }, []);
+
+  const onFinish = async (values: any) => {
+    try {
+      setSubmitting(true);
+      // Format date for API
+      if (values.date) {
+        values.date = values.date.toISOString();
+      }
+      
+      await api.post('/meetings', values);
+      message.success('Meeting scheduled successfully');
+      router.push('/meetings');
+    } catch (err: any) {
+      console.error('Error scheduling meeting:', err);
+      message.error(err.message || 'Failed to schedule meeting');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -37,6 +70,7 @@ export default function CreateMeetingPage() {
         onFinish={onFinish} 
         onCancel={() => router.push('/meetings')}
         submitLabel="Schedule Meeting"
+        loading={submitting}
       >
         <Row gutter={16}>
           <Col span={24}>
@@ -81,13 +115,13 @@ export default function CreateMeetingPage() {
           </Col>
           <Col span={12}>
             <Form.Item
-              name="contactName"
+              name="contactId"
               label="Related Contact"
               rules={[{ required: true, message: 'Please select a contact' }]}
             >
-              <Select placeholder="Select contact">
-                {mockContacts.map(contact => (
-                  <Option key={contact.id} value={`${contact.firstName} ${contact.lastName}`}>
+              <Select placeholder="Select contact" loading={loadingContacts}>
+                {contacts.map(contact => (
+                  <Option key={contact.id} value={contact.id}>
                     {contact.firstName} {contact.lastName}
                   </Option>
                 ))}

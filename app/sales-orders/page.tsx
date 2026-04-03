@@ -1,15 +1,52 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { message, Tag } from 'antd';
 import { ShoppingCartOutlined } from '@ant-design/icons';
 import ModuleHeader from '@/components/ModuleHeader';
 import DataTable from '@/components/DataTable';
-import { mockSalesOrders } from '@/lib/mockData';
+import { api } from '@/lib/api';
 
 export default function SalesOrdersPage() {
   const router = useRouter();
+  const [data, setData] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [total, setTotal] = useState(0);
+  const [pagination, setPagination] = useState({ current: 1, pageSize: 10 });
+
+  const fetchData = useCallback(async (current: number, pageSize: number) => {
+    setLoading(true);
+    try {
+      const skip = (current - 1) * pageSize;
+      const take = pageSize;
+      const response = await api.get(`/modules/sales-orders?skip=${skip}&take=${take}`);
+      setData(response.items || []);
+      setTotal(response.total || 0);
+    } catch (error: any) {
+      message.error(error.message || 'Failed to fetch sales orders');
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchData(pagination.current, pagination.pageSize);
+  }, [fetchData, pagination]);
+
+  const handleTableChange = (newPagination: any) => {
+    setPagination(newPagination);
+  };
+
+  const handleDelete = async (record: any) => {
+    try {
+      await api.delete(`/modules/sales-orders/${record.id}`);
+      message.success('Sales Order deleted successfully');
+      fetchData(pagination.current, pagination.pageSize);
+    } catch (error: any) {
+      message.error(error.message || 'Failed to delete sales order');
+    }
+  };
 
   const columns = [
     {
@@ -19,8 +56,9 @@ export default function SalesOrdersPage() {
     },
     {
       title: 'Customer',
-      dataIndex: 'customerName',
+      dataIndex: ['customer', 'name'],
       key: 'customerName',
+      render: (text: string, record: any) => text || record.customerName || 'N/A',
     },
     {
       title: 'Order Status',
@@ -63,10 +101,16 @@ export default function SalesOrdersPage() {
       />
       <DataTable
         columns={columns}
-        dataSource={mockSalesOrders}
+        dataSource={data}
+        loading={loading}
+        pagination={{
+          ...pagination,
+          total,
+        }}
+        onChange={handleTableChange}
         onView={(record) => router.push(`/sales-orders/${record.id}`)}
         onEdit={(record) => router.push(`/sales-orders/${record.id}/edit`)}
-        onDelete={(record) => message.success(`Sales Order ${record.id} deleted (mock)`)}
+        onDelete={handleDelete}
       />
     </div>
   );

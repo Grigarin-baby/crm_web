@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Form, Input, Select, message } from 'antd';
+import { Form, Input, Select, message, Spin } from 'antd';
 import ModuleHeader from '@/components/ModuleHeader';
 import DataForm from '@/components/DataForm';
-import { mockTickets } from '@/lib/mockData';
+import { api } from '@/lib/api';
 
 const { Option } = Select;
 
@@ -13,27 +13,56 @@ export default function EditTicketPage() {
   const params = useParams();
   const router = useRouter();
   const [form] = Form.useForm();
-  
-  const ticket = mockTickets.find(t => t.id === params.id) || mockTickets[0];
+  const [loading, setLoading] = useState(true);
+  const [ticket, setTicket] = useState<any>(null);
+  const [customers, setCustomers] = useState<any[]>([]);
+  const [users, setUsers] = useState<any[]>([]);
 
   useEffect(() => {
-    form.setFieldsValue(ticket);
-  }, [ticket, form]);
+    const fetchData = async () => {
+      try {
+        const [ticketData, customersData, usersData] = await Promise.all([
+          api.get(`/service/tickets/${params.id}`),
+          api.get('/modules/customers'),
+          api.get('/core/users'), // Assuming users are at /core/users
+        ]);
+        setTicket(ticketData);
+        setCustomers(customersData.items || []);
+        setUsers(usersData.items || []);
+        form.setFieldsValue(ticketData);
+      } catch (error: any) {
+        message.error(`Failed to fetch data: ${error.message}`);
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (params.id) {
+      fetchData();
+    }
+  }, [params.id, form]);
 
-  const onFinish = (values: any) => {
-    console.log('Ticket updated:', values);
-    message.success('Ticket updated successfully (mock)');
-    router.push(`/tickets/${ticket.id}`);
+  const onFinish = async (values: any) => {
+    try {
+      await api.patch(`/service/tickets/${params.id}`, values);
+      message.success('Ticket updated successfully');
+      router.push(`/tickets/${params.id}`);
+    } catch (error: any) {
+      message.error(`Failed to update ticket: ${error.message}`);
+    }
   };
+
+  if (loading) {
+    return <div style={{ textAlign: 'center', padding: '50px' }}><Spin size="large" /></div>;
+  }
 
   return (
     <div>
       <ModuleHeader
-        title={`Edit Ticket: ${ticket.ticketId}`}
+        title={`Edit Ticket: ${ticket?.ticketId}`}
         breadcrumbItems={[
           { title: 'Dashboard', href: '/' },
           { title: 'Tickets', href: '/tickets' },
-          { title: 'Details', href: `/tickets/${ticket.id}` },
+          { title: 'Details', href: `/tickets/${params.id}` },
           { title: 'Edit' },
         ]}
         backAction
@@ -42,6 +71,22 @@ export default function EditTicketPage() {
       <DataForm form={form} onFinish={onFinish} onCancel={() => router.back()}>
         <Form.Item name="ticketId" label="Ticket ID" rules={[{ required: true }]}>
           <Input disabled />
+        </Form.Item>
+
+        <Form.Item name="customerId" label="Customer">
+          <Select placeholder="Select Customer">
+            {customers.map(customer => (
+              <Option key={customer.id} value={customer.id}>{customer.name}</Option>
+            ))}
+          </Select>
+        </Form.Item>
+
+        <Form.Item name="assignedAgentId" label="Assigned Agent">
+          <Select placeholder="Select Agent">
+            {users.map(user => (
+              <Option key={user.id} value={user.id}>{user.firstName} {user.lastName}</Option>
+            ))}
+          </Select>
         </Form.Item>
 
         <Form.Item name="category" label="Category">

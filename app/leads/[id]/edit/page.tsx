@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Form, Input, Select, Row, Col, message } from 'antd';
+import { Form, Input, Select, Row, Col, message, Spin } from 'antd';
 import ModuleHeader from '@/components/ModuleHeader';
 import DataForm from '@/components/DataForm';
-import { mockLeads } from '@/lib/mockData';
+import { api } from '@/lib/api';
 
 const { Option } = Select;
 
@@ -13,27 +13,47 @@ export default function EditLeadPage() {
   const params = useParams();
   const router = useRouter();
   const [form] = Form.useForm();
-  
-  const lead = mockLeads.find(l => l.id === params.id) || mockLeads[0];
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
-    form.setFieldsValue(lead);
-  }, [lead, form]);
+    const fetchLead = async () => {
+      try {
+        const response = await api.get(`/modules/leads/${params.id}`);
+        form.setFieldsValue(response);
+      } catch (error: any) {
+        message.error(`Failed to fetch lead: ${error.message}`);
+        router.push('/leads');
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (params.id) fetchLead();
+  }, [params.id, form, router]);
 
-  const onFinish = (values: any) => {
-    console.log('Updated values:', values);
-    message.success('Lead updated successfully (mock)');
-    router.push(`/leads/${lead.id}`);
+  const onFinish = async (values: any) => {
+    setSubmitting(true);
+    try {
+      await api.patch(`/modules/leads/${params.id}`, values);
+      message.success('Lead updated successfully');
+      router.push(`/leads/${params.id}`);
+    } catch (error: any) {
+      message.error(`Failed to update lead: ${error.message}`);
+    } finally {
+      setSubmitting(false);
+    }
   };
+
+  if (loading) return <div style={{ textAlign: 'center', padding: '50px' }}><Spin size="large" /></div>;
 
   return (
     <div>
       <ModuleHeader
-        title={`Edit Lead: ${lead.firstName} ${lead.lastName}`}
+        title="Edit Lead"
         breadcrumbItems={[
           { title: 'Dashboard', href: '/' },
           { title: 'Leads', href: '/leads' },
-          { title: 'Details', href: `/leads/${lead.id}` },
+          { title: 'Details', href: `/leads/${params.id}` },
           { title: 'Edit' },
         ]}
         backAction
@@ -44,6 +64,7 @@ export default function EditLeadPage() {
         onFinish={onFinish} 
         onCancel={() => router.back()}
         submitLabel="Save Changes"
+        loading={submitting}
       >
         <Row gutter={16}>
           <Col span={12}>

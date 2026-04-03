@@ -1,15 +1,59 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { message, Tag } from 'antd';
-import { FileTextOutlined, AuditOutlined } from '@ant-design/icons';
+import { message, Tag, TablePaginationConfig } from 'antd';
+import { FileTextOutlined } from '@ant-design/icons';
 import ModuleHeader from '@/components/ModuleHeader';
 import DataTable from '@/components/DataTable';
-import { mockInvoices } from '@/lib/mockData';
+import { api } from '@/lib/api';
 
 export default function InvoicesPage() {
   const router = useRouter();
+  const [data, setData] = useState<any[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [pagination, setPagination] = useState<TablePaginationConfig>({
+    current: 1,
+    pageSize: 10,
+    total: 0,
+  });
+
+  const fetchInvoices = useCallback(async (current: number, pageSize: number) => {
+    setLoading(true);
+    try {
+      const skip = (current - 1) * pageSize;
+      const response = await api.get(`/modules/invoices?skip=${skip}&take=${pageSize}`);
+      setData(response.items);
+      setPagination(prev => ({
+        ...prev,
+        current,
+        pageSize,
+        total: response.total,
+      }));
+    } catch (error: any) {
+      message.error(`Failed to fetch invoices: ${error.message}`);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchInvoices(pagination.current || 1, pagination.pageSize || 10);
+  }, [fetchInvoices]);
+
+  const handleTableChange = (newPagination: TablePaginationConfig) => {
+    fetchInvoices(newPagination.current || 1, newPagination.pageSize || 10);
+  };
+
+  const handleDelete = async (record: any) => {
+    try {
+      await api.delete(`/modules/invoices/${record.id}`);
+      message.success('Invoice deleted successfully');
+      fetchInvoices(pagination.current || 1, pagination.pageSize || 10);
+    } catch (error: any) {
+      message.error(`Failed to delete invoice: ${error.message}`);
+    }
+  };
 
   const columns = [
     {
@@ -19,7 +63,7 @@ export default function InvoicesPage() {
     },
     {
       title: 'Customer',
-      dataIndex: 'customerName',
+      dataIndex: ['customer', 'name'],
       key: 'customerName',
     },
     {
@@ -43,6 +87,7 @@ export default function InvoicesPage() {
       title: 'Date',
       dataIndex: 'invoiceDate',
       key: 'invoiceDate',
+      render: (date: string) => new Date(date).toLocaleDateString(),
     },
   ];
 
@@ -62,10 +107,13 @@ export default function InvoicesPage() {
       />
       <DataTable
         columns={columns}
-        dataSource={mockInvoices}
+        dataSource={data}
+        loading={loading}
+        pagination={pagination}
+        onChange={handleTableChange}
         onView={(record) => router.push(`/invoices/${record.id}`)}
         onEdit={(record) => router.push(`/invoices/${record.id}/edit`)}
-        onDelete={(record) => message.success(`Invoice ${record.id} deleted (mock)`)}
+        onDelete={handleDelete}
       />
     </div>
   );

@@ -1,23 +1,54 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Form, Input, InputNumber, Select, DatePicker, Row, Col, message } from 'antd';
+import { Form, Input, InputNumber, Select, DatePicker, Row, Col, message, Spin } from 'antd';
 import ModuleHeader from '@/components/ModuleHeader';
 import DataForm from '@/components/DataForm';
-import { mockCustomers } from '@/lib/mockData';
+import { api } from '@/lib/api';
 
 const { Option } = Select;
 
 export default function CreateQuotePage() {
   const router = useRouter();
   const [form] = Form.useForm();
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [customers, setCustomers] = useState<any[]>([]);
+  const [deals, setDeals] = useState<any[]>([]);
 
-  const onFinish = (values: any) => {
-    console.log('Received values:', values);
-    message.success('Quote created successfully (mock)');
-    router.push('/quotes');
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [customersRes, dealsRes] = await Promise.all([
+          api.get('/modules/customers?take=100'),
+          api.get('/modules/deals?take=100'),
+        ]);
+        setCustomers(customersRes.items || []);
+        setDeals(dealsRes.items || []);
+      } catch (error: any) {
+        message.error(`Failed to fetch data: ${error.message}`);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const onFinish = async (values: any) => {
+    setSubmitting(true);
+    try {
+      await api.post('/modules/quotes', values);
+      message.success('Quote created successfully');
+      router.push('/quotes');
+    } catch (error: any) {
+      message.error(`Failed to create quote: ${error.message}`);
+    } finally {
+      setSubmitting(false);
+    }
   };
+
+  if (loading) return <div style={{ textAlign: 'center', padding: '50px' }}><Spin size="large" /></div>;
 
   return (
     <div>
@@ -36,6 +67,7 @@ export default function CreateQuotePage() {
         onFinish={onFinish} 
         onCancel={() => router.push('/quotes')}
         submitLabel="Create Quote"
+        loading={submitting}
       >
         <Row gutter={16}>
           <Col span={12}>
@@ -49,13 +81,13 @@ export default function CreateQuotePage() {
           </Col>
           <Col span={12}>
             <Form.Item
-              name="customerName"
+              name="customerId"
               label="Customer"
               rules={[{ required: true, message: 'Please select a customer' }]}
             >
               <Select placeholder="Select customer">
-                {mockCustomers.map(customer => (
-                  <Option key={customer.id} value={customer.name}>{customer.name}</Option>
+                {customers.map(customer => (
+                  <Option key={customer.id} value={customer.id}>{customer.name}</Option>
                 ))}
               </Select>
             </Form.Item>
@@ -72,7 +104,7 @@ export default function CreateQuotePage() {
               <InputNumber
                 style={{ width: '100%' }}
                 formatter={value => `$ ${value}`.replace(/\B(?=(\d{3})+(?!\d))/g, ',')}
-                parser={value => value!.replace(/\$\s?|(,*)/g, '')}
+                parser={value => value!.replace(/\$\s?|(,*)/g, '') as unknown as 0}
                 min={0}
               />
             </Form.Item>
@@ -90,10 +122,15 @@ export default function CreateQuotePage() {
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item
-              name="dealName"
+              name="dealId"
               label="Related Deal"
+              rules={[{ required: true, message: 'Please select a deal' }]}
             >
-              <Input placeholder="e.g. Server Upgrade" />
+              <Select placeholder="Select deal">
+                {deals.map(deal => (
+                  <Option key={deal.id} value={deal.id}>{deal.name}</Option>
+                ))}
+              </Select>
             </Form.Item>
           </Col>
         </Row>

@@ -1,16 +1,35 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { Card, Descriptions, Tag } from 'antd';
+import { Card, Descriptions, Tag, Spin, message } from 'antd';
 import { EditOutlined } from '@ant-design/icons';
 import ModuleHeader from '@/components/ModuleHeader';
-import { mockCustomers } from '@/lib/mockData';
+import { api } from '@/lib/api';
 
 export default function ViewCustomerPage() {
   const params = useParams();
   const router = useRouter();
-  const customer = mockCustomers.find(c => c.id === params.id) || mockCustomers[0];
+  const [customer, setCustomer] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchCustomer = async () => {
+      try {
+        const response = await api.get(`/modules/customers/${params.id}`);
+        setCustomer(response);
+      } catch (error: any) {
+        message.error(`Failed to fetch customer: ${error.message}`);
+        router.push('/customers');
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (params.id) fetchCustomer();
+  }, [params.id, router]);
+
+  if (loading) return <div style={{ textAlign: 'center', padding: '50px' }}><Spin size="large" /></div>;
+  if (!customer) return null;
 
   return (
     <div>
@@ -37,7 +56,7 @@ export default function ViewCustomerPage() {
             <Tag color={customer.status === 'ACTIVE' ? 'green' : 'orange'}>{customer.status}</Tag>
           </Descriptions.Item>
           <Descriptions.Item label="Address" span={2}>{customer.address}</Descriptions.Item>
-          <Descriptions.Item label="Created At">{customer.createdAt}</Descriptions.Item>
+          <Descriptions.Item label="Created At">{new Date(customer.createdAt).toLocaleDateString()}</Descriptions.Item>
         </Descriptions>
       </Card>
     </div>

@@ -1,23 +1,49 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { Form, Input, Select, InputNumber, DatePicker, Row, Col, message } from 'antd';
+import { Form, Input, Select, InputNumber, DatePicker, Row, Col, message, Spin } from 'antd';
 import ModuleHeader from '@/components/ModuleHeader';
 import DataForm from '@/components/DataForm';
-import { mockCustomers } from '@/lib/mockData';
+import { api } from '@/lib/api';
 
 const { Option } = Select;
 
 export default function CreateDealPage() {
   const router = useRouter();
   const [form] = Form.useForm();
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [customers, setCustomers] = useState<any[]>([]);
 
-  const onFinish = (values: any) => {
-    console.log('Received values:', values);
-    message.success('Deal created successfully (mock)');
-    router.push('/deals');
+  useEffect(() => {
+    const fetchCustomers = async () => {
+      try {
+        const response = await api.get('/modules/customers?take=100');
+        setCustomers(response.items || []);
+      } catch (error: any) {
+        message.error(`Failed to fetch customers: ${error.message}`);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchCustomers();
+  }, []);
+
+  const onFinish = async (values: any) => {
+    setSubmitting(true);
+    try {
+      await api.post('/modules/deals', values);
+      message.success('Deal created successfully');
+      router.push('/deals');
+    } catch (error: any) {
+      message.error(`Failed to create deal: ${error.message}`);
+    } finally {
+      setSubmitting(false);
+    }
   };
+
+  if (loading) return <div style={{ textAlign: 'center', padding: '50px' }}><Spin size="large" /></div>;
 
   return (
     <div>
@@ -36,6 +62,7 @@ export default function CreateDealPage() {
         onFinish={onFinish} 
         onCancel={() => router.push('/deals')}
         submitLabel="Create Deal"
+        loading={submitting}
       >
         <Row gutter={16}>
           <Col span={24}>
@@ -67,15 +94,16 @@ export default function CreateDealPage() {
             <Form.Item
               name="stage"
               label="Stage"
-              initialValue="PROSPECTING"
+              initialValue="NEW"
             >
               <Select>
+                <Option value="NEW">New</Option>
                 <Option value="PROSPECTING">Prospecting</Option>
                 <Option value="QUALIFICATION">Qualification</Option>
                 <Option value="PROPOSAL">Proposal</Option>
                 <Option value="NEGOTIATION">Negotiation</Option>
-                <Option value="CLOSED_WON">Closed Won</Option>
-                <Option value="CLOSED_LOST">Closed Lost</Option>
+                <Option value="WON">Won</Option>
+                <Option value="LOST">Lost</Option>
               </Select>
             </Form.Item>
           </Col>
@@ -84,13 +112,13 @@ export default function CreateDealPage() {
         <Row gutter={16}>
           <Col span={12}>
             <Form.Item
-              name="customerName"
+              name="customerId"
               label="Customer"
               rules={[{ required: true, message: 'Please select a customer' }]}
             >
               <Select placeholder="Select customer">
-                {mockCustomers.map(customer => (
-                  <Option key={customer.id} value={customer.name}>{customer.name}</Option>
+                {customers.map(customer => (
+                  <Option key={customer.id} value={customer.id}>{customer.name}</Option>
                 ))}
               </Select>
             </Form.Item>

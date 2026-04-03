@@ -1,22 +1,43 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Form, Input, Select, Row, Col, message } from 'antd';
 import ModuleHeader from '@/components/ModuleHeader';
 import DataForm from '@/components/DataForm';
-import { mockCustomers } from '@/lib/mockData';
+import { api } from '@/lib/api';
 
 const { Option } = Select;
 
 export default function CreateContactPage() {
   const router = useRouter();
   const [form] = Form.useForm();
+  const [submitting, setSubmitting] = useState(false);
+  const [customers, setCustomers] = useState<any[]>([]);
 
-  const onFinish = (values: any) => {
-    console.log('Received values:', values);
-    message.success('Contact created successfully (mock)');
-    router.push('/contacts');
+  useEffect(() => {
+    const fetchCustomers = async () => {
+      try {
+        const response = await api.get('/modules/customers?take=100');
+        setCustomers(response.items);
+      } catch (error: any) {
+        message.error(`Failed to fetch customers: ${error.message}`);
+      }
+    };
+    fetchCustomers();
+  }, []);
+
+  const onFinish = async (values: any) => {
+    setSubmitting(true);
+    try {
+      await api.post('/modules/contacts', values);
+      message.success('Contact created successfully');
+      router.push('/contacts');
+    } catch (error: any) {
+      message.error(`Failed to create contact: ${error.message}`);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -30,12 +51,13 @@ export default function CreateContactPage() {
         ]}
         backAction
       />
-      
-      <DataForm 
-        form={form} 
-        onFinish={onFinish} 
+
+      <DataForm
+        form={form}
+        onFinish={onFinish}
         onCancel={() => router.push('/contacts')}
         submitLabel="Create Contact"
+        loading={submitting}
       >
         <Row gutter={16}>
           <Col span={12}>
@@ -51,7 +73,7 @@ export default function CreateContactPage() {
             <Form.Item
               name="lastName"
               label="Last Name"
-              rules={[{ required: true, message: 'Please enter last name' }]}
+              rules={[{ required: true, message: 'Please enter last name' }]} 
             >
               <Input placeholder="e.g. Connor" />
             </Form.Item>
@@ -89,13 +111,12 @@ export default function CreateContactPage() {
           </Col>
           <Col span={12}>
             <Form.Item
-              name="customerName"
+              name="customerId"
               label="Customer"
-              rules={[{ required: true, message: 'Please select a customer' }]}
             >
-              <Select placeholder="Select customer">
-                {mockCustomers.map(customer => (
-                  <Option key={customer.id} value={customer.name}>{customer.name}</Option>
+              <Select placeholder="Select customer" allowClear>
+                {customers.map(customer => (
+                  <Option key={customer.id} value={customer.id}>{customer.name}</Option>
                 ))}
               </Select>
             </Form.Item>

@@ -3,7 +3,7 @@
 import React from 'react';
 import { Table, Button, Space, Popconfirm } from 'antd';
 import { EyeOutlined, EditOutlined, DeleteOutlined } from '@ant-design/icons';
-import type { ColumnsType } from 'antd/es/table';
+import type { ColumnsType, TablePaginationConfig } from 'antd/es/table';
 
 interface DataTableProps<T> {
   columns: ColumnsType<T>;
@@ -13,6 +13,8 @@ interface DataTableProps<T> {
   onDelete?: (record: T) => void;
   loading?: boolean;
   rowKey?: string;
+  pagination?: TablePaginationConfig | false;
+  onChange?: (pagination: TablePaginationConfig) => void;
 }
 
 const DataTable = <T extends { id: string }>({
@@ -23,6 +25,8 @@ const DataTable = <T extends { id: string }>({
   onDelete,
   loading,
   rowKey = 'id',
+  pagination,
+  onChange,
 }: DataTableProps<T>) => {
   const actionColumn = {
     title: 'Actions',
@@ -70,11 +74,12 @@ const DataTable = <T extends { id: string }>({
       dataSource={dataSource}
       rowKey={rowKey}
       loading={loading}
-      pagination={{
-        pageSize: 10,
+      pagination={pagination ? {
+        ...pagination,
         showSizeChanger: true,
         showTotal: (total) => `Total ${total} items`,
-      }}
+      } : false}
+      onChange={(p) => onChange && onChange(p)}
     />
   );
 };

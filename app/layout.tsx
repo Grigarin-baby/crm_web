@@ -5,6 +5,7 @@ import { AntdRegistry } from '@ant-design/nextjs-registry';
 import { ConfigProvider, theme as antdTheme } from 'antd';
 import MainLayout from '@/components/MainLayout';
 import { ThemeProvider, useTheme } from '@/context/ThemeContext';
+import { AuthProvider } from '@/context/AuthContext';
 import { themeConfig } from '@/lib/theme';
 import "./globals.css";
 
@@ -55,9 +56,11 @@ export default function RootLayout({
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
         <AntdRegistry>
           <ThemeProvider>
-            <AppWrapper>
-              {children}
-            </AppWrapper>
+            <AuthProvider>
+              <AppWrapper>
+                {children}
+              </AppWrapper>
+            </AuthProvider>
           </ThemeProvider>
         </AntdRegistry>
       </body>
