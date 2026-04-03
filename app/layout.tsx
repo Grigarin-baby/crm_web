@@ -3,9 +3,11 @@
 import { Geist, Geist_Mono } from "next/font/google";
 import { AntdRegistry } from '@ant-design/nextjs-registry';
 import { ConfigProvider, theme as antdTheme } from 'antd';
+import { Provider } from 'react-redux';
+import { store } from '@/store';
 import MainLayout from '@/components/MainLayout';
+import AuthGuard from '@/components/AuthGuard';
 import { ThemeProvider, useTheme } from '@/context/ThemeContext';
-import { AuthProvider } from '@/context/AuthContext';
 import { themeConfig } from '@/lib/theme';
 import "./globals.css";
 
@@ -54,15 +56,17 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
-        <AntdRegistry>
-          <ThemeProvider>
-            <AuthProvider>
-              <AppWrapper>
-                {children}
-              </AppWrapper>
-            </AuthProvider>
-          </ThemeProvider>
-        </AntdRegistry>
+        <Provider store={store}>
+          <AntdRegistry>
+            <ThemeProvider>
+              <AuthGuard>
+                <AppWrapper>
+                  {children}
+                </AppWrapper>
+              </AuthGuard>
+            </ThemeProvider>
+          </AntdRegistry>
+        </Provider>
       </body>
     </html>
   );

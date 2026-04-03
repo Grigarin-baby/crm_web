@@ -54,7 +54,7 @@ export default function EditProductPage() {
   if (loading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '400px' }}>
-        <Spin size="large" tip="Loading product data..." />
+        <Spin size="large" description="Loading product data..." />
       </div>
     );
   }

@@ -34,7 +34,7 @@ export default function ViewSalesOrderPage() {
   if (loading) {
     return (
       <div style={{ textAlign: 'center', padding: '50px' }}>
-        <Spin size="large" tip="Loading order details..." />
+        <Spin size="large" description="Loading order details..." />
       </div>
     );
   }

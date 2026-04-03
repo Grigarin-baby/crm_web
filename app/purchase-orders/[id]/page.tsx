@@ -38,7 +38,7 @@ export default function ViewPurchaseOrderPage() {
   if (loading) {
     return (
       <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '400px' }}>
-        <Spin size="large" tip="Loading purchase order..." />
+        <Spin size="large" description="Loading purchase order..." />
       </div>
     );
   }

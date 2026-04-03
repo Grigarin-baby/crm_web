@@ -19,14 +19,17 @@ import {
   MenuFoldOutlined,
   AppstoreOutlined,
   BankOutlined,
+  GlobalOutlined,
   ContainerOutlined,
   BulbOutlined,
   BulbFilled,
 } from '@ant-design/icons';
-import { Layout, Menu, Button, theme, Typography, Space, Tooltip } from 'antd';
+import { Layout, Menu, Button, theme, Typography, Space, Tooltip, Dropdown } from 'antd';
 import { useRouter, usePathname } from 'next/navigation';
 import { useTheme } from '@/context/ThemeContext';
 import { themeConfig } from '@/lib/theme';
+import { useAppSelector, useAppDispatch } from '@/store';
+import { logout } from '@/store/authSlice';
 
 const { Header, Sider, Content } = Layout;
 const { Title } = Typography;
@@ -36,13 +39,61 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const router = useRouter();
   const pathname = usePathname();
   const { theme: currentTheme, toggleTheme } = useTheme();
+  const { user } = useAppSelector((state) => state.auth);
+  const dispatch = useAppDispatch();
   const colors = currentTheme === 'dark' ? themeConfig.dark : themeConfig.light;
   
   const {
     token: { colorBgContainer, borderRadiusLG },
   } = theme.useToken();
 
-  const menuItems = [
+  if (pathname === '/login') {
+    return <>{children}</>;
+  }
+
+  const handleLogout = () => {
+    dispatch(logout());
+    router.push('/login');
+  };
+
+  const userMenuItems = [
+    {
+      key: 'profile',
+      label: 'Profile',
+      icon: <UserOutlined />,
+    },
+    {
+      key: 'logout',
+      label: 'Logout',
+      icon: <MenuFoldOutlined />,
+      onClick: handleLogout,
+    },
+  ];
+
+  const saasAdminMenuItems = [
+    {
+      key: '/',
+      icon: <DashboardOutlined />,
+      label: 'SaaS Dashboard',
+    },
+    {
+      key: '/admin/organizations',
+      icon: <GlobalOutlined />,
+      label: 'Organizations',
+    },
+    {
+      key: '/admin/branches',
+      icon: <BankOutlined />,
+      label: 'Branches',
+    },
+    {
+      key: '/admin/users',
+      icon: <TeamOutlined />,
+      label: 'Users',
+    },
+  ];
+
+  const crmMenuItems = [
     {
       key: '/',
       icon: <DashboardOutlined />,
@@ -101,6 +152,8 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
     },
   ];
 
+  const menuItems = user?.role === 'SUPER_ADMIN' ? saasAdminMenuItems : crmMenuItems;
+
   return (
     <Layout style={{ height: '100vh', overflow: 'hidden' }}>
       <Sider 
@@ -126,7 +179,7 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
           background: colors.layoutBg
         }}>
           <Title level={4} style={{ margin: 0, color: colors.primary }}>
-            {collapsed ? 'CRM' : 'Multi-Tenant CRM'}
+            {user?.role === 'SUPER_ADMIN' ? 'SaaS Management' : (collapsed ? 'CRM' : 'Multi-Tenant CRM')}
           </Title>
         </div>
         
@@ -181,8 +234,12 @@ const MainLayout: React.FC<{ children: React.ReactNode }> = ({ children }) => {
                 />
               </Tooltip>
               <Space>
-                <span style={{ fontWeight: 500 }}>Demo Organization</span>
-                <Button type="primary" shape="circle" icon={<UserOutlined />} />
+                <span style={{ fontWeight: 500 }}>
+                  {user?.role === 'SUPER_ADMIN' ? 'SaaS Management' : (user?.organizationId || 'Organization')}
+                </span>
+                <Dropdown menu={{ items: userMenuItems }} placement="bottomRight" arrow>
+                  <Button type="primary" shape="circle" icon={<UserOutlined />} />
+                </Dropdown>
               </Space>
             </Space>
           </div>
