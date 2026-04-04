@@ -2,16 +2,19 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Tag, message, TablePaginationConfig } from 'antd';
+import { Tag, message, TablePaginationConfig, Drawer } from 'antd';
 import { UserOutlined } from '@ant-design/icons';
 import ModuleHeader from '@/components/ModuleHeader';
 import DataTable from '@/components/DataTable';
 import { api } from '@/lib/api';
+import CustomerForm from '@/components/forms/CustomerForm';
 
 export default function CustomersPage() {
   const router = useRouter();
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | undefined>(undefined);
   const [pagination, setPagination] = useState<TablePaginationConfig>({
     current: 1,
     pageSize: 10,
@@ -53,6 +56,21 @@ export default function CustomersPage() {
     } catch (error: any) {
       message.error(`Failed to delete customer: ${error.message}`);
     }
+  };
+
+  const openDrawer = (id?: string) => {
+    setEditingId(id);
+    setDrawerOpen(true);
+  };
+
+  const closeDrawer = () => {
+    setDrawerOpen(false);
+    setEditingId(undefined);
+  };
+
+  const handleSuccess = () => {
+    closeDrawer();
+    fetchCustomers(pagination.current || 1, pagination.pageSize || 10);
   };
 
   const columns = [
@@ -99,7 +117,7 @@ export default function CustomersPage() {
         ]}
         primaryAction={{
           label: 'Create Customer',
-          onClick: () => router.push('/customers/create'),
+          onClick: () => openDrawer(),
           icon: <UserOutlined />,
         }}
       />
@@ -110,9 +128,24 @@ export default function CustomersPage() {
         pagination={pagination}
         onChange={handleTableChange}
         onView={(record) => router.push(`/customers/${record.id}`)}
-        onEdit={(record) => router.push(`/customers/${record.id}/edit`)}
+        onEdit={(record) => openDrawer(record.id)}
         onDelete={handleDelete}
       />
+      
+      <Drawer
+        title={editingId ? "Edit Customer" : "Create Customer"}
+        width={720}
+        onClose={closeDrawer}
+        open={drawerOpen}
+        destroyOnClose
+        styles={{ body: { paddingBottom: 80 } }}
+      >
+        <CustomerForm 
+          id={editingId} 
+          onSuccess={handleSuccess} 
+          onCancel={closeDrawer} 
+        />
+      </Drawer>
     </div>
   );
 }

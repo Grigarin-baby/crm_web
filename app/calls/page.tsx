@@ -2,16 +2,19 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { message, TablePaginationConfig } from 'antd';
+import { message, TablePaginationConfig, Drawer } from 'antd';
 import { PhoneOutlined } from '@ant-design/icons';
 import ModuleHeader from '@/components/ModuleHeader';
 import DataTable from '@/components/DataTable';
 import { api } from '@/lib/api';
+import CallForm from '@/components/forms/CallForm';
 
 export default function CallsPage() {
   const router = useRouter();
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | undefined>(undefined);
   const [pagination, setPagination] = useState<TablePaginationConfig>({
     current: 1,
     pageSize: 10,
@@ -55,6 +58,21 @@ export default function CallsPage() {
     }
   };
 
+  const openDrawer = (id?: string) => {
+    setEditingId(id);
+    setDrawerOpen(true);
+  };
+
+  const closeDrawer = () => {
+    setDrawerOpen(false);
+    setEditingId(undefined);
+  };
+
+  const handleSuccess = () => {
+    closeDrawer();
+    fetchCalls(pagination.current || 1, pagination.pageSize || 10);
+  };
+
   const columns = [
     {
       title: 'Call Type',
@@ -96,7 +114,7 @@ export default function CallsPage() {
         ]}
         primaryAction={{
           label: 'Log Call',
-          onClick: () => router.push('/calls/create'),
+          onClick: () => openDrawer(),
           icon: <PhoneOutlined />,
         }}
       />
@@ -107,9 +125,24 @@ export default function CallsPage() {
         pagination={pagination}
         onChange={handleTableChange}
         onView={(record) => router.push(`/calls/${record.id}`)}
-        onEdit={(record) => router.push(`/calls/${record.id}/edit`)}
+        onEdit={(record) => openDrawer(record.id)}
         onDelete={handleDelete}
       />
+      
+      <Drawer
+        title={editingId ? "Edit Call" : "Log Call"}
+        width={720}
+        onClose={closeDrawer}
+        open={drawerOpen}
+        destroyOnClose
+        styles={{ body: { paddingBottom: 80 } }}
+      >
+        <CallForm 
+          id={editingId} 
+          onSuccess={handleSuccess} 
+          onCancel={closeDrawer} 
+        />
+      </Drawer>
     </div>
   );
 }

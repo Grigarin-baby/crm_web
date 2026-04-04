@@ -2,15 +2,18 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Tag, message, TablePaginationConfig } from 'antd';
+import { Tag, message, TablePaginationConfig, Drawer } from 'antd';
 import ModuleHeader from '@/components/ModuleHeader';
 import DataTable from '@/components/DataTable';
 import { api } from '@/lib/api';
+import UserForm from '@/components/forms/UserForm';
 
 export default function UsersPage() {
   const router = useRouter();
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | undefined>(undefined);
   const [pagination, setPagination] = useState<TablePaginationConfig>({
     current: 1,
     pageSize: 10,
@@ -52,6 +55,21 @@ export default function UsersPage() {
     } catch (error: any) {
       message.error(`Failed to delete user: ${error.message}`);
     }
+  };
+
+  const openDrawer = (id?: string) => {
+    setEditingId(id);
+    setDrawerOpen(true);
+  };
+
+  const closeDrawer = () => {
+    setDrawerOpen(false);
+    setEditingId(undefined);
+  };
+
+  const handleSuccess = () => {
+    closeDrawer();
+    fetchUsers(pagination.current || 1, pagination.pageSize || 10);
   };
 
   const columns = [
@@ -104,7 +122,7 @@ export default function UsersPage() {
         ]}
         primaryAction={{
           label: 'Create User',
-          onClick: () => router.push('/admin/users/create'),
+          onClick: () => openDrawer(),
         }}
       />
       <DataTable
@@ -114,9 +132,24 @@ export default function UsersPage() {
         pagination={pagination}
         onChange={handleTableChange}
         onView={(record) => router.push(`/admin/users/${record.id}`)}
-        onEdit={(record) => router.push(`/admin/users/${record.id}/edit`)}
+        onEdit={(record) => openDrawer(record.id)}
         onDelete={handleDelete}
       />
+      
+      <Drawer
+        title={editingId ? "Edit User" : "Create User"}
+        width={720}
+        onClose={closeDrawer}
+        open={drawerOpen}
+        destroyOnClose
+        styles={{ body: { paddingBottom: 80 } }}
+      >
+        <UserForm 
+          id={editingId} 
+          onSuccess={handleSuccess} 
+          onCancel={closeDrawer} 
+        />
+      </Drawer>
     </div>
   );
 }

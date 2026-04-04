@@ -2,15 +2,18 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { message, TablePaginationConfig } from 'antd';
+import { message, TablePaginationConfig, Drawer } from 'antd';
 import ModuleHeader from '@/components/ModuleHeader';
 import DataTable from '@/components/DataTable';
 import { api } from '@/lib/api';
+import BranchForm from '@/components/forms/BranchForm';
 
 export default function BranchesPage() {
   const router = useRouter();
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | undefined>(undefined);
   const [pagination, setPagination] = useState<TablePaginationConfig>({
     current: 1,
     pageSize: 10,
@@ -55,6 +58,21 @@ export default function BranchesPage() {
     }
   };
 
+  const openDrawer = (id?: string) => {
+    setEditingId(id);
+    setDrawerOpen(true);
+  };
+
+  const closeDrawer = () => {
+    setDrawerOpen(false);
+    setEditingId(undefined);
+  };
+
+  const handleSuccess = () => {
+    closeDrawer();
+    fetchBranches(pagination.current || 1, pagination.pageSize || 10);
+  };
+
   const columns = [
     {
       title: 'Branch Name',
@@ -89,7 +107,7 @@ export default function BranchesPage() {
         ]}
         primaryAction={{
           label: 'Create Branch',
-          onClick: () => router.push('/admin/branches/create'),
+          onClick: () => openDrawer(),
         }}
       />
       <DataTable
@@ -99,9 +117,24 @@ export default function BranchesPage() {
         pagination={pagination}
         onChange={handleTableChange}
         onView={(record) => router.push(`/admin/branches/${record.id}`)}
-        onEdit={(record) => router.push(`/admin/branches/${record.id}/edit`)}
+        onEdit={(record) => openDrawer(record.id)}
         onDelete={handleDelete}
       />
+      
+      <Drawer
+        title={editingId ? "Edit Branch" : "Create Branch"}
+        width={720}
+        onClose={closeDrawer}
+        open={drawerOpen}
+        destroyOnClose
+        styles={{ body: { paddingBottom: 80 } }}
+      >
+        <BranchForm 
+          id={editingId} 
+          onSuccess={handleSuccess} 
+          onCancel={closeDrawer} 
+        />
+      </Drawer>
     </div>
   );
 }

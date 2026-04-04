@@ -2,16 +2,19 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { message, TablePaginationConfig } from 'antd';
+import { message, TablePaginationConfig, Drawer } from 'antd';
 import { ShoppingOutlined } from '@ant-design/icons';
 import ModuleHeader from '@/components/ModuleHeader';
 import DataTable from '@/components/DataTable';
 import { api } from '@/lib/api';
+import ProductForm from '@/components/forms/ProductForm';
 
 export default function ProductsPage() {
   const router = useRouter();
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | undefined>(undefined);
   const [pagination, setPagination] = useState<TablePaginationConfig>({
     current: 1,
     pageSize: 10,
@@ -55,6 +58,21 @@ export default function ProductsPage() {
     }
   };
 
+  const openDrawer = (id?: string) => {
+    setEditingId(id);
+    setDrawerOpen(true);
+  };
+
+  const closeDrawer = () => {
+    setDrawerOpen(false);
+    setEditingId(undefined);
+  };
+
+  const handleSuccess = () => {
+    closeDrawer();
+    fetchProducts(pagination.current || 1, pagination.pageSize || 10);
+  };
+
   const columns = [
     {
       title: 'Name',
@@ -89,7 +107,7 @@ export default function ProductsPage() {
         ]}
         primaryAction={{
           label: 'Create Product',
-          onClick: () => router.push('/products/create'),
+          onClick: () => openDrawer(),
           icon: <ShoppingOutlined />,
         }}
       />
@@ -100,9 +118,24 @@ export default function ProductsPage() {
         pagination={pagination}
         onChange={handleTableChange}
         onView={(record) => router.push(`/products/${record.id}`)}
-        onEdit={(record) => router.push(`/products/${record.id}/edit`)}
+        onEdit={(record) => openDrawer(record.id)}
         onDelete={handleDelete}
       />
+      
+      <Drawer
+        title={editingId ? "Edit Product" : "Create Product"}
+        width={720}
+        onClose={closeDrawer}
+        open={drawerOpen}
+        destroyOnClose
+        styles={{ body: { paddingBottom: 80 } }}
+      >
+        <ProductForm 
+          id={editingId} 
+          onSuccess={handleSuccess} 
+          onCancel={closeDrawer} 
+        />
+      </Drawer>
     </div>
   );
 }

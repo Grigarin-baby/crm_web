@@ -2,16 +2,19 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { message, TablePaginationConfig } from 'antd';
+import { message, TablePaginationConfig, Drawer } from 'antd';
 import { TeamOutlined } from '@ant-design/icons';
 import ModuleHeader from '@/components/ModuleHeader';
 import DataTable from '@/components/DataTable';
 import { api } from '@/lib/api';
+import VendorForm from '@/components/forms/VendorForm';
 
 export default function VendorsPage() {
   const router = useRouter();
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | undefined>(undefined);
   const [pagination, setPagination] = useState<TablePaginationConfig>({
     current: 1,
     pageSize: 10,
@@ -55,6 +58,21 @@ export default function VendorsPage() {
     }
   };
 
+  const openDrawer = (id?: string) => {
+    setEditingId(id);
+    setDrawerOpen(true);
+  };
+
+  const closeDrawer = () => {
+    setDrawerOpen(false);
+    setEditingId(undefined);
+  };
+
+  const handleSuccess = () => {
+    closeDrawer();
+    fetchVendors(pagination.current || 1, pagination.pageSize || 10);
+  };
+
   const columns = [
     {
       title: 'Vendor Name',
@@ -79,7 +97,7 @@ export default function VendorsPage() {
         ]}
         primaryAction={{
           label: 'Create Vendor',
-          onClick: () => router.push('/vendors/create'),
+          onClick: () => openDrawer(),
           icon: <TeamOutlined />,
         }}
       />
@@ -90,9 +108,24 @@ export default function VendorsPage() {
         pagination={pagination}
         onChange={handleTableChange}
         onView={(record) => router.push(`/vendors/${record.id}`)}
-        onEdit={(record) => router.push(`/vendors/${record.id}/edit`)}
+        onEdit={(record) => openDrawer(record.id)}
         onDelete={handleDelete}
       />
+      
+      <Drawer
+        title={editingId ? "Edit Vendor" : "Create Vendor"}
+        width={720}
+        onClose={closeDrawer}
+        open={drawerOpen}
+        destroyOnClose
+        styles={{ body: { paddingBottom: 80 } }}
+      >
+        <VendorForm 
+          id={editingId} 
+          onSuccess={handleSuccess} 
+          onCancel={closeDrawer} 
+        />
+      </Drawer>
     </div>
   );
 }

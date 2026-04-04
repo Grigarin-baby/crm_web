@@ -2,16 +2,19 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { message, TablePaginationConfig } from 'antd';
+import { message, TablePaginationConfig, Drawer } from 'antd';
 import { FileTextOutlined } from '@ant-design/icons';
 import ModuleHeader from '@/components/ModuleHeader';
 import DataTable from '@/components/DataTable';
 import { api } from '@/lib/api';
+import QuoteForm from '@/components/forms/QuoteForm';
 
 export default function QuotesPage() {
   const router = useRouter();
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | undefined>(undefined);
   const [pagination, setPagination] = useState<TablePaginationConfig>({
     current: 1,
     pageSize: 10,
@@ -53,6 +56,21 @@ export default function QuotesPage() {
     } catch (error: any) {
       message.error(`Failed to delete quote: ${error.message}`);
     }
+  };
+
+  const openDrawer = (id?: string) => {
+    setEditingId(id);
+    setDrawerOpen(true);
+  };
+
+  const closeDrawer = () => {
+    setDrawerOpen(false);
+    setEditingId(undefined);
+  };
+
+  const handleSuccess = () => {
+    closeDrawer();
+    fetchQuotes(pagination.current || 1, pagination.pageSize || 10);
   };
 
   const columns = [
@@ -97,7 +115,7 @@ export default function QuotesPage() {
         ]}
         primaryAction={{
           label: 'Create Quote',
-          onClick: () => router.push('/quotes/create'),
+          onClick: () => openDrawer(),
           icon: <FileTextOutlined />,
         }}
       />
@@ -108,9 +126,24 @@ export default function QuotesPage() {
         pagination={pagination}
         onChange={handleTableChange}
         onView={(record) => router.push(`/quotes/${record.id}`)}
-        onEdit={(record) => router.push(`/quotes/${record.id}/edit`)}
+        onEdit={(record) => openDrawer(record.id)}
         onDelete={handleDelete}
       />
+      
+      <Drawer
+        title={editingId ? "Edit Quote" : "Create Quote"}
+        width={720}
+        onClose={closeDrawer}
+        open={drawerOpen}
+        destroyOnClose
+        styles={{ body: { paddingBottom: 80 } }}
+      >
+        <QuoteForm 
+          id={editingId} 
+          onSuccess={handleSuccess} 
+          onCancel={closeDrawer} 
+        />
+      </Drawer>
     </div>
   );
 }

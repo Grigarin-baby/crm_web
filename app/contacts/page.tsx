@@ -2,16 +2,19 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { message, TablePaginationConfig } from 'antd';
+import { message, TablePaginationConfig, Drawer } from 'antd';
 import { ContactsOutlined } from '@ant-design/icons';
 import ModuleHeader from '@/components/ModuleHeader';
 import DataTable from '@/components/DataTable';
 import { api } from '@/lib/api';
+import ContactForm from '@/components/forms/ContactForm';
 
 export default function ContactsPage() {
   const router = useRouter();
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | undefined>(undefined);
   const [pagination, setPagination] = useState<TablePaginationConfig>({
     current: 1,
     pageSize: 10,
@@ -55,6 +58,21 @@ export default function ContactsPage() {
     }
   };
 
+  const openDrawer = (id?: string) => {
+    setEditingId(id);
+    setDrawerOpen(true);
+  };
+
+  const closeDrawer = () => {
+    setDrawerOpen(false);
+    setEditingId(undefined);
+  };
+
+  const handleSuccess = () => {
+    closeDrawer();
+    fetchContacts(pagination.current || 1, pagination.pageSize || 10);
+  };
+
   const columns = [
     {
       title: 'Name',
@@ -94,7 +112,7 @@ export default function ContactsPage() {
         ]}
         primaryAction={{
           label: 'Create Contact',
-          onClick: () => router.push('/contacts/create'),
+          onClick: () => openDrawer(),
           icon: <ContactsOutlined />,
         }}
       />
@@ -105,9 +123,24 @@ export default function ContactsPage() {
         pagination={pagination}
         onChange={handleTableChange}
         onView={(record) => router.push(`/contacts/${record.id}`)}
-        onEdit={(record) => router.push(`/contacts/${record.id}/edit`)}
+        onEdit={(record) => openDrawer(record.id)}
         onDelete={handleDelete}
       />
+      
+      <Drawer
+        title={editingId ? "Edit Contact" : "Create Contact"}
+        width={720}
+        onClose={closeDrawer}
+        open={drawerOpen}
+        destroyOnClose
+        styles={{ body: { paddingBottom: 80 } }}
+      >
+        <ContactForm 
+          id={editingId} 
+          onSuccess={handleSuccess} 
+          onCancel={closeDrawer} 
+        />
+      </Drawer>
     </div>
   );
 }

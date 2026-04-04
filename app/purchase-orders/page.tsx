@@ -2,16 +2,19 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { message, Tag, TablePaginationConfig } from 'antd';
+import { message, Tag, TablePaginationConfig, Drawer } from 'antd';
 import { DollarOutlined } from '@ant-design/icons';
 import ModuleHeader from '@/components/ModuleHeader';
 import DataTable from '@/components/DataTable';
 import { api } from '@/lib/api';
+import PurchaseOrderForm from '@/components/forms/PurchaseOrderForm';
 
 export default function PurchaseOrdersPage() {
   const router = useRouter();
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | undefined>(undefined);
   const [pagination, setPagination] = useState<TablePaginationConfig>({
     current: 1,
     pageSize: 10,
@@ -55,6 +58,21 @@ export default function PurchaseOrdersPage() {
     }
   };
 
+  const openDrawer = (id?: string) => {
+    setEditingId(id);
+    setDrawerOpen(true);
+  };
+
+  const closeDrawer = () => {
+    setDrawerOpen(false);
+    setEditingId(undefined);
+  };
+
+  const handleSuccess = () => {
+    closeDrawer();
+    fetchPurchaseOrders(pagination.current || 1, pagination.pageSize || 10);
+  };
+
   const columns = [
     {
       title: 'PO Number',
@@ -96,7 +114,7 @@ export default function PurchaseOrdersPage() {
         ]}
         primaryAction={{
           label: 'Create PO',
-          onClick: () => router.push('/purchase-orders/create'),
+          onClick: () => openDrawer(),
           icon: <DollarOutlined />,
         }}
       />
@@ -107,9 +125,24 @@ export default function PurchaseOrdersPage() {
         pagination={pagination}
         onChange={handleTableChange}
         onView={(record) => router.push(`/purchase-orders/${record.id}`)}
-        onEdit={(record) => router.push(`/purchase-orders/${record.id}/edit`)}
+        onEdit={(record) => openDrawer(record.id)}
         onDelete={handleDelete}
       />
+      
+      <Drawer
+        title={editingId ? "Edit Purchase Order" : "Create Purchase Order"}
+        width={720}
+        onClose={closeDrawer}
+        open={drawerOpen}
+        destroyOnClose
+        styles={{ body: { paddingBottom: 80 } }}
+      >
+        <PurchaseOrderForm 
+          id={editingId} 
+          onSuccess={handleSuccess} 
+          onCancel={closeDrawer} 
+        />
+      </Drawer>
     </div>
   );
 }

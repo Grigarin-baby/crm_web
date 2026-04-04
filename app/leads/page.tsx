@@ -2,15 +2,18 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { Tag, message, TablePaginationConfig } from 'antd';
+import { Tag, message, TablePaginationConfig, Drawer } from 'antd';
 import ModuleHeader from '@/components/ModuleHeader';
 import DataTable from '@/components/DataTable';
 import { api } from '@/lib/api';
+import LeadForm from '@/components/forms/LeadForm';
 
 export default function LeadsPage() {
   const router = useRouter();
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | undefined>(undefined);
   const [pagination, setPagination] = useState<TablePaginationConfig>({
     current: 1,
     pageSize: 10,
@@ -52,6 +55,21 @@ export default function LeadsPage() {
     } catch (error: any) {
       message.error(`Failed to delete lead: ${error.message}`);
     }
+  };
+
+  const openDrawer = (id?: string) => {
+    setEditingId(id);
+    setDrawerOpen(true);
+  };
+
+  const closeDrawer = () => {
+    setDrawerOpen(false);
+    setEditingId(undefined);
+  };
+
+  const handleSuccess = () => {
+    closeDrawer();
+    fetchLeads(pagination.current || 1, pagination.pageSize || 10);
   };
 
   const columns = [
@@ -104,7 +122,7 @@ export default function LeadsPage() {
         ]}
         primaryAction={{
           label: 'Create Lead',
-          onClick: () => router.push('/leads/create'),
+          onClick: () => openDrawer(),
         }}
       />
       <DataTable
@@ -114,9 +132,24 @@ export default function LeadsPage() {
         pagination={pagination}
         onChange={handleTableChange}
         onView={(record) => router.push(`/leads/${record.id}`)}
-        onEdit={(record) => router.push(`/leads/${record.id}/edit`)}
+        onEdit={(record) => openDrawer(record.id)}
         onDelete={handleDelete}
       />
+      
+      <Drawer
+        title={editingId ? "Edit Lead" : "Create Lead"}
+        width={720}
+        onClose={closeDrawer}
+        open={drawerOpen}
+        destroyOnClose
+        styles={{ body: { paddingBottom: 80 } }}
+      >
+        <LeadForm 
+          id={editingId} 
+          onSuccess={handleSuccess} 
+          onCancel={closeDrawer} 
+        />
+      </Drawer>
     </div>
   );
 }

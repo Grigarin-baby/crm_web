@@ -2,16 +2,19 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { message, Tag, TablePaginationConfig } from 'antd';
+import { message, Tag, TablePaginationConfig, Drawer } from 'antd';
 import { CheckSquareOutlined } from '@ant-design/icons';
 import ModuleHeader from '@/components/ModuleHeader';
 import DataTable from '@/components/DataTable';
 import { api } from '@/lib/api';
+import TaskForm from '@/components/forms/TaskForm';
 
 export default function TasksPage() {
   const router = useRouter();
   const [data, setData] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | undefined>(undefined);
   const [pagination, setPagination] = useState<TablePaginationConfig>({
     current: 1,
     pageSize: 10,
@@ -53,6 +56,21 @@ export default function TasksPage() {
     } catch (error: any) {
       message.error(`Failed to delete task: ${error.message}`);
     }
+  };
+
+  const openDrawer = (id?: string) => {
+    setEditingId(id);
+    setDrawerOpen(true);
+  };
+
+  const closeDrawer = () => {
+    setDrawerOpen(false);
+    setEditingId(undefined);
+  };
+
+  const handleSuccess = () => {
+    closeDrawer();
+    fetchTasks(pagination.current || 1, pagination.pageSize || 10);
   };
 
   const columns = [
@@ -109,7 +127,7 @@ export default function TasksPage() {
         ]}
         primaryAction={{
           label: 'Create Task',
-          onClick: () => router.push('/tasks/create'),
+          onClick: () => openDrawer(),
           icon: <CheckSquareOutlined />,
         }}
       />
@@ -120,9 +138,24 @@ export default function TasksPage() {
         pagination={pagination}
         onChange={handleTableChange}
         onView={(record) => router.push(`/tasks/${record.id}`)}
-        onEdit={(record) => router.push(`/tasks/${record.id}/edit`)}
+        onEdit={(record) => openDrawer(record.id)}
         onDelete={handleDelete}
       />
+      
+      <Drawer
+        title={editingId ? "Edit Task" : "Create Task"}
+        width={720}
+        onClose={closeDrawer}
+        open={drawerOpen}
+        destroyOnClose
+        styles={{ body: { paddingBottom: 80 } }}
+      >
+        <TaskForm 
+          id={editingId} 
+          onSuccess={handleSuccess} 
+          onCancel={closeDrawer} 
+        />
+      </Drawer>
     </div>
   );
 }

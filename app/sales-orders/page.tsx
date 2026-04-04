@@ -2,16 +2,19 @@
 
 import React, { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
-import { message, Tag } from 'antd';
+import { message, Tag, Drawer } from 'antd';
 import { ShoppingCartOutlined } from '@ant-design/icons';
 import ModuleHeader from '@/components/ModuleHeader';
 import DataTable from '@/components/DataTable';
 import { api } from '@/lib/api';
+import SalesOrderForm from '@/components/forms/SalesOrderForm';
 
 export default function SalesOrdersPage() {
   const router = useRouter();
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | undefined>(undefined);
   const [total, setTotal] = useState(0);
   const [pagination, setPagination] = useState({ current: 1, pageSize: 10 });
 
@@ -46,6 +49,21 @@ export default function SalesOrdersPage() {
     } catch (error: any) {
       message.error(error.message || 'Failed to delete sales order');
     }
+  };
+
+  const openDrawer = (id?: string) => {
+    setEditingId(id);
+    setDrawerOpen(true);
+  };
+
+  const closeDrawer = () => {
+    setDrawerOpen(false);
+    setEditingId(undefined);
+  };
+
+  const handleSuccess = () => {
+    closeDrawer();
+    fetchData(pagination.current, pagination.pageSize);
   };
 
   const columns = [
@@ -95,7 +113,7 @@ export default function SalesOrdersPage() {
         ]}
         primaryAction={{
           label: 'Create Order',
-          onClick: () => router.push('/sales-orders/create'),
+          onClick: () => openDrawer(),
           icon: <ShoppingCartOutlined />,
         }}
       />
@@ -109,9 +127,24 @@ export default function SalesOrdersPage() {
         }}
         onChange={handleTableChange}
         onView={(record) => router.push(`/sales-orders/${record.id}`)}
-        onEdit={(record) => router.push(`/sales-orders/${record.id}/edit`)}
+        onEdit={(record) => openDrawer(record.id)}
         onDelete={handleDelete}
       />
+      
+      <Drawer
+        title={editingId ? "Edit Sales Order" : "Create Sales Order"}
+        width={720}
+        onClose={closeDrawer}
+        open={drawerOpen}
+        destroyOnClose
+        styles={{ body: { paddingBottom: 80 } }}
+      >
+        <SalesOrderForm 
+          id={editingId} 
+          onSuccess={handleSuccess} 
+          onCancel={closeDrawer} 
+        />
+      </Drawer>
     </div>
   );
 }
